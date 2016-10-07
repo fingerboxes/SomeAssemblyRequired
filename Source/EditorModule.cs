@@ -23,59 +23,43 @@
  */
 
 using System;
+
 using UnityEngine;
 
 namespace SomeAssemblyRequired
-{ 
-    [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.EDITOR)]
-    public class SomeAssemblyRequired : ScenarioModule
+{
+    [KSPAddon(KSPAddon.Startup.EditorAny, true)]
+    public class EditorModule : MonoBehaviour
     {
-        // Singleton boilerplate
-        private static SomeAssemblyRequired _Instance;
-        internal static SomeAssemblyRequired Instance
+        void Start()
         {
-            get
+            EditorLogic.fetch.launchBtn.onClick.RemoveAllListeners();
+            EditorLogic.fetch.launchBtn.onClick.AddListener(delegate { OnLaunchClick(); });
+        }
+
+        public void OnLaunchClick()
+        {
+            ShipConstruct ship = EditorLogic.fetch.ship;
+            SomeAssemblyRequired.Instance.savedShip = ship.SaveShip();
+
+            string LaunchSiteName = "LaunchPad";
+
+            PSystemSetup.SpaceCenterFacility spaceCenterFacility = PSystemSetup.Instance.GetSpaceCenterFacility(LaunchSiteName);
+
+            Debug.Log("spaceCenterFacility: " + spaceCenterFacility.name);
+
+            PSystemSetup.SpaceCenterFacility.SpawnPoint spawnPoint = spaceCenterFacility.GetSpawnPoint(LaunchSiteName);
+
+            Debug.Log("spawnPoint: " + spawnPoint.name);
+
+            Transform spawnPointTransform = spawnPoint.GetSpawnPointTransform();
+
+            foreach (PSystemSetup.SpaceCenterFacility.SpawnPoint sp in spaceCenterFacility.spawnPoints)
             {
-                if (_Instance == null)
-                {
-                    throw new Exception("ERROR: Attempted to query SomeAssemblyRequired before it was loaded.");
-                }
-
-                return _Instance;
+                Debug.Log(sp.name);
             }
-        }
 
-        public override void OnAwake()
-        {
-            _Instance = this;
-        }
-
-        void Destroy()
-        {
-            _Instance = null;
-        }
-
-        private static ConfigNode _savedShip;
-        public ConfigNode savedShip
-        {
-            get
-            {
-                return _savedShip;
-            }
-            set
-            {
-                _savedShip = value;
-                _savedShip.name = "SavedVessel";
-            }
-        }
-
-        public override void OnLoad(ConfigNode node)
-        {            
-        }
-
-        public override void OnSave(ConfigNode node)
-        {
-            node.AddNode(savedShip);
+            ShipConstruction.PutShipToGround(ship, spawnPointTransform);            
         }
     }
 }
