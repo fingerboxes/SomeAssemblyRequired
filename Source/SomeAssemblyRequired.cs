@@ -54,28 +54,5 @@ namespace SomeAssemblyRequired
         {
             _Instance = null;
         }
-
-        private static ConfigNode _savedShip;
-        public ConfigNode savedShip
-        {
-            get
-            {
-                return _savedShip;
-            }
-            set
-            {
-                _savedShip = value;
-                _savedShip.name = "SavedVessel";
-            }
-        }
-
-        public override void OnLoad(ConfigNode node)
-        {            
-        }
-
-        public override void OnSave(ConfigNode node)
-        {
-            node.AddNode(savedShip);
-        }
     }
 }

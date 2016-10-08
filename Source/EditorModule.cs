@@ -21,16 +21,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+// xcopy /Y $(TargetPath) $(TargetDir)..\..\..\GameData\SomeAssemblyRequired\Plugins\
 
 using System;
+using System.IO;
 
 using UnityEngine;
+using KSPPluginFramework;
 
 namespace SomeAssemblyRequired
 {
     [KSPAddon(KSPAddon.Startup.EditorAny, true)]
     public class EditorModule : MonoBehaviour
     {
+
+        public static string shipFilename = "Test";
         void Start()
         {
             EditorLogic.fetch.launchBtn.onClick.RemoveAllListeners();
@@ -39,27 +44,85 @@ namespace SomeAssemblyRequired
 
         public void OnLaunchClick()
         {
-            ShipConstruct ship = EditorLogic.fetch.ship;
-            SomeAssemblyRequired.Instance.savedShip = ship.SaveShip();
+            PopupDialog.SpawnPopupDialog(new Vector2(0.5f, 0.5f),
+                    new Vector2(0.5f, 0.5f),
+                    new MultiOptionDialog("Do you want to build this craft?",
+                        "Build Craft",
+                        HighLogic.UISkin,
+                        new Rect(0.5f, 0.5f, 350f, 200f),
+                        new DialogGUIFlexibleSpace(),
+                        new DialogGUIHorizontalLayout(
+                            new DialogGUIFlexibleSpace(),
+                            new DialogGUIVerticalLayout(
+                                new DialogGUIFlexibleSpace(),
+                                new DialogGUILabel("Estimated Build Cost"),
+                                new DialogGUIFlexibleSpace()
+                            ),
+                            new DialogGUIFlexibleSpace(),
+                            new DialogGUIFlexibleSpace(),
+                            new DialogGUIVerticalLayout(
+                                new DialogGUIFlexibleSpace(),
+                                new DialogGUIBox("999,999,999,9999", 200f, 30f),
+                                new DialogGUIFlexibleSpace()
+                            )                            
+                        ),
+                        new DialogGUIHorizontalLayout(
+                            new DialogGUIFlexibleSpace(),
+                            new DialogGUIVerticalLayout(
+                                new DialogGUIFlexibleSpace(),
+                                new DialogGUILabel("Estimated Build Time"),
+                                new DialogGUIFlexibleSpace()
+                            ),
+                            new DialogGUIFlexibleSpace(),
+                            new DialogGUIFlexibleSpace(),
+                            new DialogGUIVerticalLayout(
+                                new DialogGUIFlexibleSpace(),
+                                new DialogGUIBox("999 Years, 999 Days, 99 Min, 99 Sec", 200f, 30f),
+                                new DialogGUIFlexibleSpace()
+                            )
+                        ),
+                        new DialogGUIFlexibleSpace(),
+                        new DialogGUIHorizontalLayout(
+                            new DialogGUIFlexibleSpace(),
+                            new DialogGUIButton("Confirm",
+                                delegate
+                                {
+                                    SaveShip();                                    
+                                }, 140.0f, 30.0f, true),
+                            new DialogGUIButton("Cancel", () => { }, 140.0f, 30.0f, true)
+                            )),
+                    false,
+                    HighLogic.UISkin);
+        }
 
-            string LaunchSiteName = "LaunchPad";
-
-            PSystemSetup.SpaceCenterFacility spaceCenterFacility = PSystemSetup.Instance.GetSpaceCenterFacility(LaunchSiteName);
-
-            Debug.Log("spaceCenterFacility: " + spaceCenterFacility.name);
-
-            PSystemSetup.SpaceCenterFacility.SpawnPoint spawnPoint = spaceCenterFacility.GetSpawnPoint(LaunchSiteName);
-
-            Debug.Log("spawnPoint: " + spawnPoint.name);
-
-            Transform spawnPointTransform = spawnPoint.GetSpawnPointTransform();
-
-            foreach (PSystemSetup.SpaceCenterFacility.SpawnPoint sp in spaceCenterFacility.spawnPoints)
+        public class DialogGUILineItem : DialogGUIBase
+        {
+            public DialogGUILineItem(string message, string value)
             {
-                Debug.Log(sp.name);
+                
+            }
+        }
+
+        public void SaveShip()
+        {
+            ShipConstruct ship = EditorLogic.fetch.ship;
+            string directoryPath = KSPUtil.ApplicationRootPath + "saves/" + HighLogic.SaveFolder + "/SAR/Pending/" + ShipConstruction.GetShipsSubfolderFor(EditorDriver.editorFacility) + "/";
+            string fullSavePath = directoryPath + ship.shipName + "_" + Math.Round(Planetarium.GetUniversalTime());
+
+            if (!Directory.Exists(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
             }
 
-            ShipConstruction.PutShipToGround(ship, spawnPointTransform);            
+            int i = 0;
+            while (File.Exists(fullSavePath + "_" + i + ".craft"))
+            {
+                i++;
+            }
+
+            fullSavePath = fullSavePath + "_" + i + ".craft";
+
+            ship.SaveShip().Save(fullSavePath);
         }
     }
 }
